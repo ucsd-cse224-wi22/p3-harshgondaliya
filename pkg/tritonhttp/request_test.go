@@ -77,6 +77,46 @@ func TestReadGoodRequest(t *testing.T) {
 				Close: true,
 			},
 		},
+		{
+			"Empty Value",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test\r\n" +
+				"Connection: close\r\n" +
+				"Key1:\r\n" +
+				"Key2:   val2\r\n" +
+				"\r\n",
+			&Request{
+				Method: "GET",
+				URL:    "/index.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{
+					"Key1": "",
+					"Key2": "val2",
+				},
+				Host:  "test",
+				Close: true,
+			},
+		},
+		{
+			"Spaces in value",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test\r\n" +
+				"Connection: close\r\n" +
+				"Key1:\r\n" +
+				"Key2:   Harsh Gondaliya\r\n" +
+				"\r\n",
+			&Request{
+				Method: "GET",
+				URL:    "/index.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{
+					"Key1": "",
+					"Key2": "Harsh Gondaliya",
+				},
+				Host:  "test",
+				Close: true,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -99,6 +139,26 @@ func TestReadBadRequest(t *testing.T) {
 		{
 			"Empty",
 			"\r\n",
+		},
+		{
+			"Malformed First line 1",
+			"GET\r\n",
+		},
+		{
+			"Malformed First line 2",
+			"GET  /index.html  HTTP/1.1\r\n",
+		},
+		{
+			"Malformed First line 3",
+			"GET  /index.html  http/1.1\r\n",
+		},
+		{
+			"Missing Host header",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Connection: close\r\n" +
+				"Key1:\r\n" +
+				"Key2:   Harsh Gondaliya\r\n" +
+				"\r\n",
 		},
 	}
 

@@ -1,8 +1,19 @@
 package tritonhttp
 
 import (
+	"bufio"
+	"fmt"
 	"io"
 )
+const (
+	responseProto = "HTTP/1.1"
+	statusOK = 200
+	statusMethodNotAllowed = 405
+)
+var statusText = map[int]string {
+	statusOK: "OK",
+	statusMethodNotAllowed: "Method Not Allowed",
+}
 
 type Response struct {
 	StatusCode int    // e.g. 200
@@ -21,7 +32,9 @@ type Response struct {
 	// It could be "", which means there is no file to serve.
 	FilePath string
 }
-
+func (res * Response) init(){
+	res.Proto = responseProto
+}
 // Write writes the res to the w.
 func (res *Response) Write(w io.Writer) error {
 	if err := res.WriteStatusLine(w); err != nil {
@@ -35,7 +48,17 @@ func (res *Response) Write(w io.Writer) error {
 	}
 	return nil
 }
-
+func (res *Response) WriteTwo(w io.Writer) error{
+	bw := bufio.NewWriter(w)
+	statusLine := fmt.Sprintf("%v %v %v\r\n", res.Proto, res.StatusCode, statusText[res.StatusCode])
+	if _,err := bw.WriteString(statusLine); err != nil {
+		return err
+	}
+	if err := bw.Flush(); err != nil {
+		return err
+	}
+	return nil
+}
 // WriteStatusLine writes the status line of res to w, including the ending "\r\n".
 // For example, it could write "HTTP/1.1 200 OK\r\n".
 func (res *Response) WriteStatusLine(w io.Writer) error {
