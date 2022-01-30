@@ -9,6 +9,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -89,19 +91,28 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		if err != nil{
 			log.Printf("Handle bad reqest for error: %v", err)
 			res := &Response{}
+			res.Header = make(map[string]string)
 			res.HandleBadRequest()
-			_ = res.WriteTwo(conn)
+			werr := res.Write(conn)
+			if werr != nil{
+				log.Println("Error while writing reponse for bad request", werr)
+			}
 			_ = conn.Close()
 			return // after a single bad request no need to handle subsequent requests
 		}
 		// Handle good request
 		log.Printf("Handle good request %v", req)
 		res := s.HandleGoodRequest(req)
-		err = res.WriteTwo(conn)
+		err = res.Write(conn)
 		if err != nil{
 			log.Println(err)
 		}
 		// Close conn if requested
+		v, exists := res.Header["Connection"]
+		if exists && v == "close"{
+			_ = conn.Close()
+			return
+		}
 	}
 }
 
@@ -117,30 +128,75 @@ func (s *Server) ValidateServerSetup() error {
 	return nil
 }
 
-// HandleNotFound prepares res to be a 404 Not Found response
-// ready to be written back to client.
-func (res *Response) HandleNotFound(req *Request) {
-	log.Printf("hi")
-}
-
 // HandleGoodRequest handles the valid req and generates the corresponding res.
 func (s *Server) HandleGoodRequest(req *Request) (res *Response) {
 	res = &Response{}
-	res.HandleOK(req, "hello-world.txt") // TODO: to be altered
-	res.FilePath = filepath.Join(s.DocRoot, "hello-world.txt")
+	res.Header = make(map[string]string)
+	
+	cleanedPath := filepath.Clean(filepath.Join(s.DocRoot, req.URL))
+	fi, err := os.Stat(cleanedPath)
+	var maliciousURL bool
+	if len(cleanedPath) >= len(s.DocRoot){
+		if cleanedPath[:len(s.DocRoot)] != s.DocRoot{
+			maliciousURL = true
+		} else{
+			maliciousURL = false
+		}
+	} else {
+		maliciousURL = true
+	}
+	if os.IsNotExist(err) || maliciousURL{
+		res.HandleNotFound(req)
+	} else {
+		res.HandleOK(req, cleanedPath) // TODO: to be altered
+		res.Header["Last-Modified"] = FormatTime(fi.ModTime())
+		res.Header["Content-Length"] = strconv.Itoa(int(fi.Size()))
+	}
 	return res
 }
 
 // HandleOK prepares res to be a 200 OK response
 // ready to be written back to client.
-func (res *Response) HandleOK(req *Request, path string) {
+func (res *Response) HandleOK(req *Request, cleanedPath string) {
 	res.init()
 	res.StatusCode = statusOK
+	res.Header["Date"] = FormatTime(time.Now())
+	v, exists := req.Header["Connection"]
+	if exists && v == "close"{
+		res.Header["Connection"] = "close"
+	}
+	lastSlashIndex := strings.LastIndex(cleanedPath, "/")
+	stringAfterLastSlash := cleanedPath[lastSlashIndex:]
+	dotIndex := strings.LastIndex(stringAfterLastSlash, ".")
+	if dotIndex == -1 {
+		res.Header["Content-Type"] = MIMETypeByExtension("") 
+	} else{
+		res.Header["Content-Type"] = MIMETypeByExtension(stringAfterLastSlash[dotIndex:])
+	}
+	res.Request = req
+	res.FilePath = cleanedPath
 }
 // HandleBadRequest prepares res to be a 400 Bad Request response
 // ready to be written back to client.
 func (res *Response) HandleBadRequest() {
 	res.init()
-	res.StatusCode = statusMethodNotAllowed
+	res.StatusCode = statusBadRequest
+	res.Header["Date"] = FormatTime(time.Now())
+	res.Header["Connection"] = "close"
+	res.Request = nil
+	res.FilePath = ""
+}
+
+// HandleNotFound prepares res to be a 404 Not Found response
+// ready to be written back to client.
+func (res *Response) HandleNotFound(req *Request) {
+	res.init()
+	res.StatusCode = statusNotFound
+	res.Header["Date"] = FormatTime(time.Now())
+	v, exists := req.Header["Connection"]
+	if exists && v == "close"{
+		res.Header["Connection"] = "close"
+	}
+	res.Request = req
 	res.FilePath = ""
 }

@@ -155,8 +155,8 @@ func parseRequestValue(line string) (string){
 	headerLineFields := strings.SplitN(line, ":", 2) // we only do this if we already know that we have key value pair separated by colon
 	afterColonString := headerLineFields[1]
 	var nonSpaceCharIndex int
-	for i, _ := range afterColonString{
-		if afterColonString[i] != ' '{
+	for i, ch := range afterColonString {		
+		if ch != ' '{
 			nonSpaceCharIndex = i
 			break
 		}
