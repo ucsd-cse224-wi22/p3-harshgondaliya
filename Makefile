@@ -1,7 +1,7 @@
 .PHONY: install
 install:
 	rm -rf bin
-	GOBIN=$(PWD)/bin go install ./...
+	GOBIN="$(PWD)"/bin go install ./...
 
 .PHONY: run-default
 run-default:
@@ -13,12 +13,12 @@ run-tritonhttp:
 
 .PHONY: unit-test
 unit-test:
-	go test -v ./pkg/...
+	go test -count=1 -v ./pkg/...
 
 .PHONY: e2e-test
 e2e-test:
 	rm -rf test/_bin
-	GOBIN=$(PWD)/test/_bin go install ./...
+	GOBIN="$(PWD)"/test/_bin go install ./...
 	go test -v ./test/...
 
 .PHONY: fmt

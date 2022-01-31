@@ -49,6 +49,7 @@ func ReadRequest(br *bufio.Reader) (req *Request, bytesReceived bool, err error)
 	req.Header = make(map[string]string)
 	//read start line
 	line, err := ReadLine(br) // always returns all data read till \r\n or till the pt of err 
+	log.Println("Received line from ReadLine: ", line)
 	if err != nil{             // if EOF came, still the past char read are there in line
 		if len(line) > 0{ 
 			bytesReceived = true
@@ -59,6 +60,8 @@ func ReadRequest(br *bufio.Reader) (req *Request, bytesReceived bool, err error)
 	}
 	bytesReceived = true // no error so at least 1 byte has been read
 	startLineFields, err := parseRequestStartLine(line)
+	log.Println("Received startLineFields from parseRequestStartLine: ")
+	log.Println(startLineFields)
 	if err!= nil{ 
 		return nil, bytesReceived, badStringError("malformed start line", line)
 	}
@@ -69,9 +72,6 @@ func ReadRequest(br *bufio.Reader) (req *Request, bytesReceived bool, err error)
 	req.URL = startLineFields[1]
 	if !validURL(req.URL){ 
 		return nil, bytesReceived, badStringError("invalid URL", req.URL)
-	}
-	if req.URL[len(req.URL)-1] == '/'{
-		req.URL += "index.html"
 	}
 	req.Proto = startLineFields[2]
 	if !validProto(req.Proto){ 
@@ -86,11 +86,16 @@ func ReadRequest(br *bufio.Reader) (req *Request, bytesReceived bool, err error)
 			break // header end
 		}
 		header, err := parseRequestHeader(line)
-		if !validHeader(header){ 
+		log.Println("Received header from parseRequestHeader: ", header)
+		if err != nil{
+			return nil, bytesReceived, badStringError("invalid header value pair", line)
+		}
+		if !validHeader(header) { 
 			return nil, bytesReceived, badStringError("invalid Header", header)
 		}
 		header = CanonicalHeaderKey(header)
 		value := parseRequestValue(line)
+		log.Println("Received value from parseRequestValue: ", value)
 		if header == "Host"{
 			req.Host = value
 		} 
@@ -100,9 +105,9 @@ func ReadRequest(br *bufio.Reader) (req *Request, bytesReceived bool, err error)
 		if header != "Connection" && header != "Host"{
 			req.Header[header] = value
 		}
-		log.Println("Read line from request", line)
+		log.Println("Read line SUCCESSFULLY from request: ", line)
 	}
-	if req.Host == ""{
+	if req.Host == ""{ // compulsory host header required
 		return nil, bytesReceived, badStringError("Host Header Missing", "")
 	}
 	return req, bytesReceived, nil // TODO: think more whether to return true
@@ -156,7 +161,7 @@ func parseRequestValue(line string) (string){
 	afterColonString := headerLineFields[1]
 	var nonSpaceCharIndex int
 	for i, ch := range afterColonString {		
-		if ch != ' '{
+		if ch != ' '{ // go until first non-space character is seen
 			nonSpaceCharIndex = i
 			break
 		}

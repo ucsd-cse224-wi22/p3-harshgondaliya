@@ -9,7 +9,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -71,28 +70,43 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			return
 		}
 		// Try to read next request
-		req, _, err := ReadRequest(br) // TODO: handle partial bytesReceived case
+		req, bytesReceived, readErr := ReadRequest(br) // TODO: handle partial bytesReceived case
 		
 		// Handle EOF
-		if errors.Is(err, io.EOF){
+		if errors.Is(readErr, io.EOF){
 			log.Printf("Connection closed by %v", conn.RemoteAddr())
 			_ = conn.Close()
 			return
 		}
 		
 		// Handle timeout
-		if err, ok := err.(net.Error); ok && err.Timeout(){
-			log.Printf("Connection to %v timed out", conn.RemoteAddr())
-			_ = conn.Close()
-			return
+		if err, ok := readErr.(net.Error); ok && err.Timeout(){
+			if bytesReceived { // connection timed out but partial bytes received
+ 				log.Printf("Timeout occured and Partial Bytes Read: %v", readErr)
+				res := &Response{}
+				res.Header = make(map[string]string)
+				res.HandleBadRequest()
+				log.Println(res)
+				werr := res.Write(conn)
+				if werr != nil{
+					log.Println("Error while writing reponse for bad request", werr)
+				}
+				_ = conn.Close()
+				return // after a single bad request no need to handle subsequent requests
+			}else {
+				log.Printf("Connection to %v timed out. No Bytes were read", conn.RemoteAddr())
+				_ = conn.Close()
+				return
+			} 
 		}
 
 		// Handle bad request
-		if err != nil{
-			log.Printf("Handle bad reqest for error: %v", err)
+		if readErr != nil{
+			log.Printf("Handle bad reqest for error: %v", readErr)
 			res := &Response{}
 			res.Header = make(map[string]string)
 			res.HandleBadRequest()
+			log.Println(res)
 			werr := res.Write(conn)
 			if werr != nil{
 				log.Println("Error while writing reponse for bad request", werr)
@@ -103,13 +117,15 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		// Handle good request
 		log.Printf("Handle good request %v", req)
 		res := s.HandleGoodRequest(req)
-		err = res.Write(conn)
-		if err != nil{
-			log.Println(err)
+		log.Println(res)
+		werr := res.Write(conn)
+		if werr != nil{
+			log.Println(werr)
 		}
 		// Close conn if requested
 		v, exists := res.Header["Connection"]
 		if exists && v == "close"{
+			log.Println("Closing connection because close received")
 			_ = conn.Close()
 			return
 		}
@@ -132,25 +148,35 @@ func (s *Server) ValidateServerSetup() error {
 func (s *Server) HandleGoodRequest(req *Request) (res *Response) {
 	res = &Response{}
 	res.Header = make(map[string]string)
-	
-	cleanedPath := filepath.Clean(filepath.Join(s.DocRoot, req.URL))
+	if req.URL[len(req.URL)-1] == '/'{ // we are sure that req is at least one char long so can access
+		req.URL += "index.html" // moved here because unit test expects it to be here
+	}
+	cleanedPath := filepath.Join(s.DocRoot, req.URL)
 	fi, err := os.Stat(cleanedPath)
+	log.Println("Cleaned Path", cleanedPath)
 	var maliciousURL bool
 	if len(cleanedPath) >= len(s.DocRoot){
-		if cleanedPath[:len(s.DocRoot)] != s.DocRoot{
-			maliciousURL = true
-		} else{
+		if strings.HasPrefix(cleanedPath[:len(s.DocRoot)], s.DocRoot){
 			maliciousURL = false
+		} else{
+			maliciousURL = true
 		}
 	} else {
+		// if (len(cleanedPath) + 1) == len(s.DocRoot) {  // if s.DocRoot is "testdata/" and URL is "/" then result of clean is "testdata"
+		// 	maliciousURL = (s.DocRoot[len(s.DocRoot)-1] != '/') // wrong assumption. if we have / then our code has already inserted /index.html
+		// 	log.Println("NOT Malicious")
+		// } else {
+		// 	maliciousURL = true
+		// }
 		maliciousURL = true
 	}
+	log.Println("malicious URL: ", maliciousURL)
 	if os.IsNotExist(err) || maliciousURL{
 		res.HandleNotFound(req)
 	} else {
-		res.HandleOK(req, cleanedPath) // TODO: to be altered
+		res.HandleOK(req, cleanedPath)
 		res.Header["Last-Modified"] = FormatTime(fi.ModTime())
-		res.Header["Content-Length"] = strconv.Itoa(int(fi.Size()))
+		res.Header["Content-Length"] = fmt.Sprint(fi.Size())
 	}
 	return res
 }
@@ -160,12 +186,11 @@ func (s *Server) HandleGoodRequest(req *Request) (res *Response) {
 func (res *Response) HandleOK(req *Request, cleanedPath string) {
 	res.init()
 	res.StatusCode = statusOK
-	res.Header["Date"] = FormatTime(time.Now())
-	v, exists := req.Header["Connection"]
-	if exists && v == "close"{
+	if req.Close {
 		res.Header["Connection"] = "close"
 	}
-	lastSlashIndex := strings.LastIndex(cleanedPath, "/")
+	res.Header["Date"] = FormatTime(time.Now())
+	lastSlashIndex := strings.LastIndex(cleanedPath, "/") // we will always have a '/' embedded when we reach this part of code
 	stringAfterLastSlash := cleanedPath[lastSlashIndex:]
 	dotIndex := strings.LastIndex(stringAfterLastSlash, ".")
 	if dotIndex == -1 {
@@ -193,8 +218,7 @@ func (res *Response) HandleNotFound(req *Request) {
 	res.init()
 	res.StatusCode = statusNotFound
 	res.Header["Date"] = FormatTime(time.Now())
-	v, exists := req.Header["Connection"]
-	if exists && v == "close"{
+	if req.Close {
 		res.Header["Connection"] = "close"
 	}
 	res.Request = req

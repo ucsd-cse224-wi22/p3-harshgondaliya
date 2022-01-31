@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"sort"
+	"log"
 )
 const (
 	responseProto = "HTTP/1.1"
@@ -16,14 +17,14 @@ const (
 var statusText = map[int]string {
 	statusOK: "OK",
 	statusNotFound: "Not Found",
-	statusBadRequest: "BadRequest",
+	statusBadRequest: "Bad Request",
 }
 
 type Response struct {
 	StatusCode int    // e.g. 200
 	Proto      string // e.g. "HTTP/1.1"
 
-	// Header stores all headers to write to the response.
+	// Header stores ALL headers (including host and connection) to write to the response.
 	// Header keys are case-incensitive, and should be stored
 	// in the canonical format in this map.
 	Header map[string]string
@@ -79,6 +80,7 @@ func (res *Response) WriteSortedHeaders(w io.Writer) error {
 	bw := bufio.NewWriter(w)
 	for _, key := range keys{
 		headerLine := fmt.Sprintf("%v: %v\r\n", key, res.Header[key])
+		log.Println(headerLine)
 		if _,err := bw.WriteString(headerLine); err != nil {
 			return err
 		}
@@ -100,7 +102,7 @@ func (res *Response) WriteSortedHeaders(w io.Writer) error {
 // It doesn't write anything if there is no file to serve.
 func (res *Response) WriteBody(w io.Writer) error {
 	if res.FilePath != ""{
-		data, err := ioutil.ReadFile(res.FilePath)
+		data, err := os.ReadFile(res.FilePath)
 		if err != nil{
 			return err
 		}
