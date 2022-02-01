@@ -58,6 +58,151 @@ func TestHandleGoodRequest(t *testing.T) {
 			"index.html",
 		},
 		{
+			"404TryToReadADirectory",
+			&Request{
+				Method: "GET",
+				URL:    "/subdir",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{},
+				Host:   "test",
+				Close:  true,
+			},
+			404,
+			[]string{
+				"Date",
+			},
+			map[string]string{
+				"Connection": "close",
+			},
+			"",
+		},
+		{
+			"New",
+			&Request{
+				Method: "GET",
+				URL:    "/subdir/index.html/../index.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{},
+				Host:   "test",
+				Close:  false,
+			},
+			200,
+			[]string{
+				"Date",
+				"Last-Modified",
+			},
+			map[string]string{
+				"Content-Type":   "text/html; charset=utf-8",
+				"Content-Length": "8",
+			},
+			"subdir/index.html",
+		},
+		{
+			"OKBasic1",
+			&Request{
+				Method: "GET",
+				URL:    "../../../pkg/tritonhttp/testdata/",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{},
+				Host:   "test",
+				Close:  false,
+			},
+			200,
+			[]string{
+				"Date",
+				"Last-Modified",
+			},
+			map[string]string{
+				"Content-Type":   contentTypeHTML,
+				"Content-Length": "12",
+			},
+			"index.html",
+		},
+		{
+			"OKBasic2",
+			&Request{
+				Method: "GET",
+				URL:    "/empty.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{},
+				Host:   "test",
+				Close:  false,
+			},
+			200,
+			[]string{
+				"Date",
+				"Last-Modified",
+			},
+			map[string]string{
+				"Content-Type":   contentTypeHTML,
+				"Content-Length": "0",
+			},
+			"empty.html",
+		},
+		{
+			"OKBasic3",
+			&Request{
+				Method: "GET",
+				URL:    "/subdir/",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{},
+				Host:   "test",
+				Close:  false,
+			},
+			200,
+			[]string{
+				"Date",
+				"Last-Modified",
+			},
+			map[string]string{
+				"Content-Type":   contentTypeHTML,
+				"Content-Length": "8",
+			},
+			"subdir/index.html",
+		},
+		{
+			"OKPath",
+			&Request{
+				Method: "GET",
+				URL:    "/../../../../../Projects/p3-harshgondaliya/pkg/tritonhttp/testdata/",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{},
+				Host:   "test",
+				Close:  false,
+			},
+			200,
+			[]string{
+				"Date",
+				"Last-Modified",
+			},
+			map[string]string{
+				"Content-Type":   contentTypeHTML,
+				"Content-Length": "12",
+			},
+			"index.html",
+		},
+		{
+			"Path1",
+			&Request{
+				Method: "GET",
+				URL:    "/subdir/index.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{},
+				Host:   "test",
+				Close:  false,
+			},
+			200,
+			[]string{
+				"Date",
+				"Last-Modified",
+			},
+			map[string]string{
+				"Content-Type":   contentTypeHTML,
+				"Content-Length": "8",
+			},
+			"subdir/index.html",
+		},
+		{
 			"OKClose",
 			&Request{
 				Method: "GET",
@@ -105,6 +250,23 @@ func TestHandleGoodRequest(t *testing.T) {
 			&Request{
 				Method: "GET",
 				URL:    "/notexist.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{},
+				Host:   "test",
+				Close:  false,
+			},
+			404,
+			[]string{
+				"Date",
+			},
+			map[string]string{},
+			"",
+		},
+		{
+			"NotFoundPath",
+			&Request{
+				Method: "GET",
+				URL:    "/../../../../../../../../",
 				Proto:  "HTTP/1.1",
 				Header: map[string]string{},
 				Host:   "test",

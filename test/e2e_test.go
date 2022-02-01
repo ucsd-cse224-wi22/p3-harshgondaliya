@@ -251,6 +251,227 @@ func TestConcurrentRequest(t *testing.T) {
 				},
 			},
 		},
+		{
+			"OKOK*10",
+			[]*concurrentTestSpec{
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+				{
+					"testdata/requests/single/OKTimeout.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       false,
+					},
+				},
+				{
+					"testdata/requests/single/OKBasic.txt",
+					&ResponseChecker{
+						StatusCode:  200,
+						FilePath:    filepath.Join(testDocRoot, "index.html"),
+						ContentType: contentTypeHTML,
+						Close:       true,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

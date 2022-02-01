@@ -9,6 +9,7 @@ import (
 
 func checkGoodRequest(t *testing.T, readErr error, reqGot, reqWant *Request) {
 	if readErr != nil {
+		t.Log("Hello")
 		t.Fatal(readErr)
 	}
 	if !reflect.DeepEqual(*reqGot, *reqWant) {
@@ -78,6 +79,44 @@ func TestReadGoodRequest(t *testing.T) {
 			},
 		},
 		{
+			"MiscHeaders with no close",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test\r\n" +
+				"Key1: val1\r\n" +
+				"Key2:   val2\r\n" +
+				"\r\n",
+			&Request{
+				Method: "GET",
+				URL:    "/index.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{
+					"Key1": "val1",
+					"Key2": "val2",
+				},
+				Host:  "test",
+				Close: false,
+			},
+		},
+		{
+			"Custom good headers",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test\r\n" +
+				"hi------there: val1\r\n" +
+				"Key2:   val2\r\n" +
+				"\r\n",
+			&Request{
+				Method: "GET",
+				URL:    "/index.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{
+					"Hi------There": "val1",
+					"Key2": "val2",
+				},
+				Host:  "test",
+				Close: false,
+			},
+		},
+		{
 			"Empty Value",
 			"GET /index.html HTTP/1.1\r\n" +
 				"Host: test\r\n" +
@@ -103,7 +142,7 @@ func TestReadGoodRequest(t *testing.T) {
 				"Host: test\r\n" +
 				"Connection: close\r\n" +
 				"Key1:\r\n" +
-				"Key2:   Harsh Gondaliya\r\n" +
+				"Key2:      Harsh Gondaliya\r\n" +
 				"\r\n",
 			&Request{
 				Method: "GET",
@@ -117,6 +156,25 @@ func TestReadGoodRequest(t *testing.T) {
 				Close: true,
 			},
 		},
+		{
+			"Only Hyphen Duplicate Headers",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test\r\n" +
+				"Connection: close\r\n" +
+				"-:\r\n" +
+				"-:\r\n" +
+				"\r\n",
+			&Request{
+				Method: "GET",
+				URL:    "/index.html",
+				Proto:  "HTTP/1.1",
+				Header: map[string]string{
+					"-": "",
+				},
+				Host:  "test",
+				Close: true,
+			},
+		},	
 	}
 
 	for _, tt := range tests {
@@ -141,6 +199,13 @@ func TestReadBadRequest(t *testing.T) {
 			"\r\n",
 		},
 		{
+			"Empty Key",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test\r\n" +
+				": test\r\n" +
+				"\r\n",
+		},
+		{
 			"Malformed First line 1",
 			"GET\r\n",
 		},
@@ -159,6 +224,73 @@ func TestReadBadRequest(t *testing.T) {
 				"Key1:\r\n" +
 				"Key2:   Harsh Gondaliya\r\n" +
 				"\r\n",
+		},
+		{
+			"Dont start with /",
+			"GET index.html HTTP/1.1\r\n" +
+				"Connection: close\r\n" +
+				"Key1:\r\n" +
+				"Key2:   Harsh Gondaliya\r\n" +
+				"\r\n",
+		},
+		{
+			"Header Key error 1",
+			"GET / HTTP/1.1\r\n" +
+				" Connection: close\r\n" +
+				"Key1:\r\n" +
+				"Key2:   Harsh Gondaliya\r\n" +
+				"\r\n",
+		},
+		{
+			"Header Key error 2",
+			"GET / HTTP/1.1\r\n" +
+				"Connection: close\r\n" +
+				"Key1 :\r\n" +
+				"Key2:   Harsh Gondaliya\r\n" +
+				"\r\n",
+		},
+		{
+			"Header Key error 3",
+			"GET / HTTP/1.1\r\n" +
+				"Connection: close\r\n" +
+				"Key1:\r\n" +
+				"Ke_y2:   Harsh Gondaliya\r\n" +
+				"\r\n",
+		},
+		{
+			"Header Key error 4",
+			"GET / HTTP/1.1\r\n" +
+				"Connection: close\r\n" +
+				"Key1:\r\n" +
+				"Key#2:   Harsh Gondaliya\r\n" +
+				"\r\n",
+		},
+		{
+			"Missing CRLF 1",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test" +
+				"\r\n",
+		},
+		{
+			"Missing CRLF 2",
+			"GET /index.html HTTP/1.1" +
+				"Host: test\r\n" +
+				"hi------there: val1\r\n" +
+				"Key2:   val2\r\n" +
+				"\r\n",
+		},
+		{
+			"Missing CRLF 3",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test" +
+				"\r\n",
+		},
+		{
+			"Missing CRLF 4",
+			"GET /index.html HTTP/1.1\r\n" +
+				"Host: test\r\n" +
+				"hi------there: val1\r\n" +
+				"Key2:   val2\r\n",
 		},
 	}
 
@@ -212,6 +344,24 @@ func TestReadMultipleRequests(t *testing.T) {
 					Host:   "test",
 					Close:  false,
 				},
+				nil,
+			},
+		},
+		{
+			"BadGood1",
+			"GETT /index.html HTTP/1.1\r\nHost: test\r\n\r\n" + 
+			"GET /index.html HTTP/1.1\r\nHost: test\r\n\r\n",
+			[]*Request{
+				nil,
+				nil,
+			},
+		},
+		{
+			"BadGood2",
+			"GET /index.html HTTP/1.1\r\nHost: test\r\n" + 
+			"GET /index.html HTTP/1.1\r\nHost: test\r\n\r\n",
+			[]*Request{
+				nil,
 				nil,
 			},
 		},

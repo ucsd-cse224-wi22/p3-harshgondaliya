@@ -20,6 +20,22 @@ func TestWriteStatusLine(t *testing.T) {
 			},
 			"HTTP/1.1 200 OK\r\n",
 		},
+		{
+			"Bad Request",
+			&Response{
+				StatusCode: 400,
+				Proto:      "HTTP/1.1",
+			},
+			"HTTP/1.1 400 Bad Request\r\n",
+		},
+		{
+			"404",
+			&Response{
+				StatusCode: 404,
+				Proto:      "HTTP/1.1",
+			},
+			"HTTP/1.1 404 Not Found\r\n",
+		},
 	}
 
 	for _, tt := range tests {
@@ -80,6 +96,26 @@ func TestWriteBody(t *testing.T) {
 		{
 			"Basic",
 			"testdata/index.html",
+		},
+		{
+			"Basic1",
+			"testdata/fake.jpg",
+		},
+		{
+			"Basic2",
+			"testdata/fake.png",
+		},
+		{
+			"Basic3",
+			"testdata/empty.html",
+		},
+		{
+			"Basic4",
+			"testdata/subdir/index.html",
+		},
+		{
+			"Basic5",
+			"testdata/subdir/subsubdir/binary.dat",
 		},
 		{
 			"NoBody",

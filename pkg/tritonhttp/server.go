@@ -148,30 +148,59 @@ func (s *Server) ValidateServerSetup() error {
 func (s *Server) HandleGoodRequest(req *Request) (res *Response) {
 	res = &Response{}
 	res.Header = make(map[string]string)
+	var maliciousURL bool
 	if req.URL[len(req.URL)-1] == '/'{ // we are sure that req is at least one char long so can access
 		req.URL += "index.html" // moved here because unit test expects it to be here
 	}
-	cleanedPath := filepath.Join(s.DocRoot, req.URL)
-	fi, err := os.Stat(cleanedPath)
-	log.Println("Cleaned Path", cleanedPath)
-	var maliciousURL bool
-	if len(cleanedPath) >= len(s.DocRoot){
-		if strings.HasPrefix(cleanedPath[:len(s.DocRoot)], s.DocRoot){
-			maliciousURL = false
-		} else{
-			maliciousURL = true
-		}
-	} else {
-		// if (len(cleanedPath) + 1) == len(s.DocRoot) {  // if s.DocRoot is "testdata/" and URL is "/" then result of clean is "testdata"
-		// 	maliciousURL = (s.DocRoot[len(s.DocRoot)-1] != '/') // wrong assumption. if we have / then our code has already inserted /index.html
-		// 	log.Println("NOT Malicious")
-		// } else {
-		// 	maliciousURL = true
-		// }
+	docAbsPath, derr := filepath.Abs(s.DocRoot)
+	if derr != nil {
 		maliciousURL = true
 	}
+	searchAbsPath, serr := filepath.Abs(filepath.Join(docAbsPath, req.URL))
+	if serr != nil {
+		maliciousURL = true
+	}
+	relPath, rerr := filepath.Rel(docAbsPath, searchAbsPath)
+	if rerr != nil {
+		maliciousURL = true
+	}
+	if len(relPath) >=2 {
+		if relPath[:2] == ".."{
+			maliciousURL = true
+		} else {
+			maliciousURL = false
+		}
+	} else {
+		maliciousURL = false
+	}
+	cleanedPath := filepath.Join(s.DocRoot, relPath) // remember here we do not need the abs path
+	fi, err := os.Stat(cleanedPath)
+	if err!= nil{
+		maliciousURL = true
+	}else{
+		if fi.IsDir(){
+			maliciousURL = true // Accessing a directory but not a file
+		}
+	}
+	log.Println("Cleaned Path", cleanedPath)
+	// if len(cleanedPath) >= len(s.DocRoot){
+	// 	if strings.HasPrefix(cleanedPath[:len(s.DocRoot)], s.DocRoot){
+	// 		maliciousURL = false
+	// 	} else{
+	// 		maliciousURL = true
+	// 	}
+	// } else {
+	// 	// if (len(cleanedPath) + 1) == len(s.DocRoot) {  // if s.DocRoot is "testdata/" and URL is "/" then result of clean is "testdata"
+	// 	// 	maliciousURL = (s.DocRoot[len(s.DocRoot)-1] != '/') // wrong assumption. if we have / then our code has already inserted /index.html
+	// 	// 	log.Println("NOT Malicious")
+	// 	// } else {
+	// 	// 	maliciousURL = true
+	// 	// }
+	// 	maliciousURL = true
+	// }
 	log.Println("malicious URL: ", maliciousURL)
-	if os.IsNotExist(err) || maliciousURL{
+	lastSlashIndex := strings.LastIndex(cleanedPath, "/")
+	if os.IsNotExist(err) || maliciousURL || lastSlashIndex==-1{
 		res.HandleNotFound(req)
 	} else {
 		res.HandleOK(req, cleanedPath)
