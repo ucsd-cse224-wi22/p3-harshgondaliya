@@ -1,4 +1,8 @@
-# TritonHTTP
+# Custom HTTP Web Server
+
+<p align="center">
+  <img src="https://github.com/ucsd-cse224-wi22/p3-harshgondaliya/blob/main/http-web-server.PNG" style="height: auto; width: 700px">
+</p>
 
 ## Spec Summary
 
@@ -135,12 +139,3 @@ cat test/testdata/requests/single/OKBasic.txt | nc localhost 8080
 ```
 
 You'll see the response printed out. And you could look at your server's logging to debug.
-
-## Submission
-
-Either submit through GitHub, or:
-```
-make submission
-```
-
-And upload the generated `submission.zip` file to Gradescope.
